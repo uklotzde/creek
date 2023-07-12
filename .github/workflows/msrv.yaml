@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow
+
+name: msrv
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-workspace:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install dependencies
+        run: sudo apt install alsa libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev
+
+      - name: Install Rust toolchain
+        # Aligned with `rust-version` in `Cargo.toml`
+        uses: dtolnay/rust-toolchain@1.62
+
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Generate Cargo.lock file
+        run: cargo generate-lockfile
+
+      - name: Cache Rust toolchain and build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          # Distinguished by the action name to avoid sharing across different actions!
+          shared-key: "msrv"
+
+      - name: Check workspace build (default features)
+        run: cargo check --locked --workspace
+
+      - name: Check workspace build (no default features)
+        run: cargo check --locked --workspace --no-default-features
+
+      - name: Check workspace build (all features)
+        run: cargo check --locked --workspace --all-features
